@@ -11,7 +11,8 @@ HOW TO IMPORT AND RUN CODE:
 - Run MainLauncher.java
 
 
-You need at least JavaSE-1.8 and JgraphT package on your Eclipse workspace. See following links:
+You need at least JavaSE-1.8, JgraphT and JavaCC packages on your Eclipse workspace. See following links:
 
 - https://jgrapht.org/
+- https://javacc.org/
 - https://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html
