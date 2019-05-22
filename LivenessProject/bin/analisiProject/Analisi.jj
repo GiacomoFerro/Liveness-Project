@@ -1,0 +1,533 @@
+/*options
+{
+	static = false;
+}*/
+
+PARSER_BEGIN(Analisi)
+package analisiProject;
+import java.util.*;
+import java.io.*;
+import java.net.*;
+
+import org.jgrapht.*;
+import org.jgrapht.graph.*;
+import org.jgrapht.io.*;
+import org.jgrapht.traverse.*;
+
+public class Analisi{
+
+	public void setIterations(int s) {
+		this.iterazioni = s;
+	}
+	
+  	public Analisi() {
+
+	}
+	
+  public static Vertexgraph nodoPrec = new Vertexgraph("NULL",0);
+  public static Vertexgraph nodoWhile = null;
+  public static Vertexgraph nodoIf = null;
+  public static Vertexgraph nodoFor = null;
+  public static int i = 1;
+  public static int iterazioni=0;
+
+  public static Set<Vertexgraph> gen = new HashSet<Vertexgraph>();
+  public static Set<Vertexgraph> kill = new HashSet<Vertexgraph>();
+  public static Graph<Vertexgraph,DefaultEdge> g = new DefaultDirectedGraph<Vertexgraph,DefaultEdge>(DefaultEdge.class);
+  
+	public String main(String args []) throws ParseException, FileNotFoundException {
+	  Analisi P = new Analisi(new FileInputStream("corpoJava.txt"));
+	  
+	  String riga = "" ;
+	  String testo = "" ;
+	  g.addVertex(nodoPrec);
+
+	  try{
+	    riga = P.one_line();
+      }
+      catch(Exception e){
+        System.out.println("NOK.");
+        System.out.println(e.getMessage());
+        e.printStackTrace();
+        }
+        return riga;
+	}
+}
+
+PARSER_END(Analisi)
+
+SKIP :
+{" "|"\r"|"\t"|"\n"|"int"}
+
+TOKEN :
+{
+//< TARGET : "Class" | "Method" | "MethodParameter" | "Field">
+//| 
+< AND : "&&" > | < OR : "||" > | < NOT : "!" > | < DIMENSOPER : ">" | "<" | ">=" | "<=" >
+|
+< OPERATOR : "+" | "-" | "*" | "%" | "/" > | < ogr : "{" > | < cgr : "}" >
+|
+< FOR : "for" > | < WHILE :"while" | "While" | "WHILE" > | < IF :"if">| < NULL:"NULL" > | < EXIT:"EXIT" >
+|
+< INTEGER : ([ "0"-"9" ])+ >
+|
+< END : ";" > | < OPENPAR : "(" > |< CLOSEPAR : ")" > | < EQUAL : "=" >| < COMMA : "," >
+|
+< ANNCLASS : [ "A"-"Z","a"-"z" ] | (["A"-"Z","a"-"z","_"](["A"-"Z","a"-"z","0"-"9","_" ])*) >
+}
+
+String one_line() :
+{
+  Vertexgraph s;
+  String u= "";
+  String risultato="";
+}
+
+{
+  (
+    (
+      s = simpleassign()
+      {
+        g.addVertex(s);
+        g.addEdge(nodoPrec,s);
+        nodoPrec = s;
+   	  }
+      |
+      u = whilecycle()
+      |
+      u = ifcondition()
+      |
+      u = forcycle()
+	)
+  )*
+	{ 
+	  risultato = "Insieme dei nodi: \n" + g.vertexSet().toString()+"\n"+
+	  			  "Insieme degli archi: \n" + g.edgeSet().toString()+"\n"+
+	  			  "Insieme delle var generate: \n"+gen.toString()+"\n"+
+	  			  "Insieme delle var killate: \n"+kill.toString()+"\n";
+
+	  Live obj = new Live(i, kill, gen, g);
+	  
+	  String results = obj.compute_LiveOut(iterazioni);
+	  return risultato+"\n"+results;
+ 	}
+}
+
+Vertexgraph simpleassign() :
+{
+  String s= "";
+  Token var=null;
+  Token value=null;
+  Token op=null;
+  String op1="";
+  Vertexgraph v = new Vertexgraph();
+}
+  
+{
+  var = < ANNCLASS > < EQUAL >
+  {
+    s=(var.image);
+    Vertexgraph x = new Vertexgraph();
+    x.setNodo(s);
+    x.setIndex(i);
+    s=s+"=";        
+
+	Iterator it = kill.iterator();
+	boolean presente=false;	
+
+	while(it.hasNext()) {
+	  Vertexgraph tmp = new Vertexgraph();
+	  tmp = (Vertexgraph) it.next();
+	  if(tmp.equals(x)) {
+	    presente=true;
+	    }
+	}
+
+	if(!presente) { kill.add(x);}
+	//if( ! kill.contains(x)) { kill.add(x);}
+  }
+	(
+	  var = < ANNCLASS >
+	  {
+	    s = s+(var.image);
+  		x = new Vertexgraph();
+	    x.setNodo(var.image);
+	    x.setIndex(i);
+	    it = gen.iterator();
+		presente=false;
+		
+	    while(it.hasNext()) {
+			Vertexgraph tmp = new Vertexgraph();
+			tmp = (Vertexgraph) it.next();
+			if(tmp.equals(x)) {
+				presente=true;
+			}
+	  	}
+	    if(!presente) { gen.add(x);}
+		//if(! gen.contains(x)) { gen.add(x);}
+	  }
+	  |
+	  value = <INTEGER>
+	  {
+	    s=s+(value.image);
+	  }
+ 	)
+ 	(
+ 	 op= < OPERATOR >
+ 	 {
+ 	   s=s+(op.image);
+ 	 }
+ 	 (
+ 	   var = < ANNCLASS >
+ 	   {
+ 	     Vertexgraph y = new Vertexgraph();
+ 	     s = s+(var.image);
+ 	     y.setNodo(var.image);
+ 	     y.setIndex(i);
+ 	     it = gen.iterator();
+ 	     presente=false;
+
+ 	     while(it.hasNext()) {
+ 	       Vertexgraph tmp = new Vertexgraph();
+ 	       tmp = (Vertexgraph) it.next();
+		   if(tmp.equals(y)) {
+		     presente=true;
+		   }
+	     }
+	     if(!presente) { gen.add(y);}
+ 	     //if(! gen.contains(y)) { gen.add(y);} 
+ 	   }
+ 	   |
+ 	   value = <INTEGER>
+ 	   {
+ 	     s=s+(value.image);
+ 	   }
+ 	 )
+	)* <END >
+	 {
+	   v.setNodo(s);
+	   v.setIndex(i);
+	   i = i+1;
+	   return v;
+	  }
+  }
+
+String whilecycle() :
+{
+  String s= "";
+  Vertexgraph nodo_interno;
+  Token var=null;
+  Token value=null;
+  Token op=null;
+  String vars,values,op1="";
+  String q="";
+  Vertexgraph v = new Vertexgraph();
+  }
+{
+	< WHILE > <OPENPAR > var= < ANNCLASS >
+	{
+	  s=(var.image);
+	  Vertexgraph y = new Vertexgraph();
+ 	  y.setNodo(var.image);
+ 	  y.setIndex(i);
+
+ 	  Iterator it = gen.iterator();
+ 	  boolean presente=false;
+
+	    while(it.hasNext()) {
+			Vertexgraph tmp = new Vertexgraph();
+			tmp = (Vertexgraph) it.next();
+			if(tmp.equals(y)) {
+				presente=true;
+			}
+		}
+		if(!presente) { gen.add(y);}	
+	}
+	(
+	  op=< DIMENSOPER >
+	  {
+	    s=s+(op.image);
+	  }
+	  |	< EQUAL ><EQUAL >
+	  {
+	    s=s+"==";
+	  }
+	)
+	value=< INTEGER > <CLOSEPAR > <ogr >
+	{
+	  s=s+(value.image);
+	  v.setNodo(s);
+	  v.setIndex(i);
+	  i=i+1;
+	  g.addVertex(v);
+	  g.addEdge(nodoPrec,v);
+	  nodoPrec = v;
+	  nodoWhile = v;
+	}
+	(  
+	  nodo_interno = simpleassign()
+	  {
+	    g.addVertex(nodo_interno);
+	    g.addEdge(nodoPrec,nodo_interno);
+		nodoPrec = nodo_interno;
+	  }
+	)	(
+	  nodo_interno = simpleassign()
+	  {
+	    g.addVertex(nodo_interno);
+	    g.addEdge(nodoPrec,nodo_interno);
+	    g.addEdge(nodo_interno,nodoWhile);
+	    nodoPrec = nodoWhile;
+		}
+	)* < cgr >
+		{
+		  g.addEdge(nodo_interno,nodoWhile);
+		  nodoPrec = nodoWhile;
+		  return "fine while";
+		}
+  }
+
+String forcycle():
+{
+  String s= "";
+  Token var=null;
+  Token value=null;
+  Token op=null;
+  Token var2 = null;
+  Vertexgraph nodo_interno;
+  Vertexgraph nodoIncremento = new Vertexgraph();
+  Vertexgraph v = new Vertexgraph();
+  Vertexgraph w = new Vertexgraph();
+  }
+{
+    < FOR > < OPENPAR > var = < ANNCLASS > < EQUAL > value = <INTEGER> < END > 
+	{	  
+	  s=(var.image)+"="+(value.image);
+	  v.nodo = s;
+	  v.index = i;
+	  g.addVertex(v);
+	  g.addEdge(nodoPrec,v);
+
+	  Vertexgraph y = new Vertexgraph();
+ 	  y.setNodo(var.image);
+ 	  y.setIndex(i);
+ 	  Iterator <Vertexgraph> it = kill.iterator();
+ 	  boolean presente=false;
+ 	  Vertexgraph tmp = new Vertexgraph();
+
+ 	  while(it.hasNext()){
+ 	  tmp = (Vertexgraph) it.next();
+ 	  	if(tmp.equals(y)){
+ 	  	  presente = true;
+ 	  	}
+ 	  }
+
+ 	  if(!presente){
+ 	    kill.add(y);
+ 	  }
+ 	  
+ 	  nodoPrec = v;i = i+1;
+	}
+  	var = < ANNCLASS > op= < DIMENSOPER > value = < INTEGER > < END >
+	{ 
+	  s=(var.image)+(op.image)+(value.image);
+	  w.setNodo(s);
+	  w.setIndex(i);
+	  y = new Vertexgraph();
+ 	  y.setNodo(var.image);
+ 	  y.setIndex(i);
+
+ 	  it = gen.iterator();
+ 	  presente=false;
+ 	  tmp = new Vertexgraph();
+
+ 	  while(it.hasNext()) {
+ 	    tmp = (Vertexgraph) it.next();
+ 	    if(tmp.equals(y)) {
+ 	      presente = true;
+		}
+	  }
+
+	  if(! presente){
+	    gen.add(y);
+	  }
+
+	  
+	  g.addVertex(w);
+	  g.addEdge(nodoPrec,w);
+	  nodoPrec = w;
+	  nodoFor = nodoPrec;
+	  i = i+1; 
+	}
+  	var = < ANNCLASS > <EQUAL> var2 = <ANNCLASS> op=<OPERATOR > value = < INTEGER > //  i++
+	{
+	  s=(var.image)+"="+(var2.image)+(op.image)+(value.image);
+	  nodoIncremento.setNodo(s);
+	  /*y = new Vertexgraph();
+ 	  y.setNodo(var.image); y.setIndex(i);
+
+ 	  it = kill.iterator();
+ 	  presente=false;
+ 	  tmp = new Vertexgraph();
+
+ 	  while(it.hasNext()) {
+ 	    tmp = (Vertexgraph) it.next();
+ 	    if(tmp.equals(y)) {
+ 	      presente = true;
+		}
+	  }
+	  if(!presente){
+	    kill.add(y);
+	  }
+
+	  y = new Vertexgraph();
+ 	  y.setNodo(var2.image);
+ 	  y.setIndex(i);
+
+ 	  it = gen.iterator();
+ 	  presente=false;
+ 	  tmp = new Vertexgraph();
+
+ 	  while(it.hasNext()){
+ 	    tmp = (Vertexgraph) it.next();
+ 	    if(tmp.equals(y)){
+ 	      presente = true;
+		}
+	  }
+
+	  if(! presente){
+	    gen.add(y);
+	  }*/
+ } < CLOSEPAR > <ogr>
+ 	(  
+	  nodo_interno = simpleassign()
+	  {
+	    g.addVertex(nodo_interno);
+	    g.addEdge(nodoPrec,nodo_interno);
+		nodoPrec = nodo_interno;
+	  }
+	)
+	(
+	    nodo_interno = simpleassign()
+	  {
+	    g.addVertex(nodo_interno);
+	    g.addEdge(nodoPrec,nodo_interno);
+	    nodoPrec = nodo_interno;
+		}
+	)*
+	< cgr >
+  	{
+	  nodoIncremento.setIndex(i);
+	  y = new Vertexgraph();
+ 	  y.setNodo(var.image); y.setIndex(i);
+
+ 	  it = kill.iterator();
+ 	  presente=false;
+ 	  tmp = new Vertexgraph();
+
+ 	  while(it.hasNext()) {
+ 	    tmp = (Vertexgraph) it.next();
+ 	    if(tmp.equals(y)) {
+ 	      presente = true;
+		}
+	  }
+	  if(!presente){
+	    kill.add(y);
+	  }
+
+	  y = new Vertexgraph();
+ 	  y.setNodo(var2.image);
+ 	  y.setIndex(i);
+
+ 	  it = gen.iterator();
+ 	  presente=false;
+ 	  tmp = new Vertexgraph();
+
+ 	  while(it.hasNext()){
+ 	    tmp = (Vertexgraph) it.next();
+ 	    if(tmp.equals(y)){
+ 	      presente = true;
+		}
+	  }
+
+	  if(! presente){
+	    gen.add(y);
+	  }
+  	  g.addVertex(nodoIncremento);
+  	  g.addEdge(nodoPrec,nodoIncremento);
+  	  g.addEdge(nodoIncremento,nodoFor);
+  	  nodoPrec = nodoFor;
+  	  i=i+1;
+  	  return "si";
+  	}
+}
+
+String ifcondition():
+{
+  String s= "";
+  Token var=null;
+  Token value=null;
+  Token op=null;
+  String vars,values,op1="";
+  Vertexgraph v = new Vertexgraph();
+  Vertexgraph nodo_interno;
+  }
+{
+    < IF > < OPENPAR > var= < ANNCLASS > 
+	{
+		s=(var.image);
+
+	  	Vertexgraph y = new Vertexgraph();
+ 	    s = s+(var.image);
+ 	    y.setNodo(var.image);
+ 	    y.setIndex(i);
+				
+		Iterator <Vertexgraph> it = gen.iterator();
+		boolean presente=false;
+		Vertexgraph tmp = new Vertexgraph();
+
+		while(it.hasNext()) {
+		tmp = (Vertexgraph) it.next();
+		  if(tmp.equals(y)) {
+		    presente = true;
+		  }
+		}
+		if(!presente){
+		  gen.add(y);
+		}
+	}
+	  ( op=< DIMENSOPER > | op="==") value=< INTEGER > <CLOSEPAR >  <ogr >
+ 	   {
+ 	     s=(var.image)+(op.image)+(value.image);
+ 	       
+ 	     g.addVertex(v);
+ 	     
+ 	     g.addEdge(nodoPrec,v);
+ 	     nodoPrec = v;
+ 	     nodoIf = v;
+ 	     v.setNodo(s);
+	  	 v.setIndex(i);
+	  	 i=i+1;
+		}
+	(
+	nodo_interno = simpleassign()
+	{
+	    g.addVertex(nodo_interno);
+	    g.addEdge(nodoPrec,nodo_interno);
+		nodoPrec = nodo_interno;
+	  }
+	)
+	(
+	  nodo_interno = simpleassign()
+	  {
+	    g.addVertex(nodo_interno);
+	    g.addEdge(nodoPrec,nodo_interno);
+	    nodoPrec = nodoIf;
+		}
+	)*	
+	< cgr >
+	{
+		nodoPrec = nodoIf;
+	  	return "fine if";	
+	}
+}
