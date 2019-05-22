@@ -1,7 +1,9 @@
 # Liveness Project
 Information Systems Analysis - Liveness Project
 
-Read report.pdf in order to have an explanation.
+Read **report.pdf** in order to have an explanation.
+
+Look at the **slideshow** to have an overwiew on the project.
 
 
 HOW TO IMPORT AND RUN THE CODE:
