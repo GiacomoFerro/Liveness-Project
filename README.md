@@ -8,7 +8,7 @@ HOW TO IMPORT AND RUN CODE:
 
 - Download LivenessProject folder
 - From Eclipse environment select File->Import->General->File System->LivenessProject.
-- Run MainLauncher.java
+- Run MainLauncher.java but before you need to configure corpoJava.txt path
 
 
 You need at least JavaSE-1.8, JgraphT and JavaCC packages on your Eclipse workspace. See following links:
