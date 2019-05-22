@@ -1,4 +1,4 @@
-# LivenessProject
+# Liveness Project
 Information Systems Analysis - Liveness Project
 
 Read report.pdf in order to have an explanation.
