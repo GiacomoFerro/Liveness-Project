@@ -1,4 +1,4 @@
-# Liveness Project
+# liveness-static-analyzer
 Information Systems Analysis - Liveness Project
 
 Read **report.pdf** in order to have an explanation.
